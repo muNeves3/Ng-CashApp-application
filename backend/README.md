@@ -18,5 +18,7 @@
 
 ```
   cd backend
+  yarn
+  yarn prisma migrate:dev
   yarn start:dev
 ```
