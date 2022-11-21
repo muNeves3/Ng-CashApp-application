@@ -34,7 +34,7 @@
 
 ## Frontend
 
-### Runing the frontend
+### Running the frontend
 
 ```
   cd frontend
