@@ -16,7 +16,7 @@
   docker compose up -D
 ```
 
-#### Runing the backend
+#### Running the backend
 
 ```
   cd backend
