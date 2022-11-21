@@ -70,6 +70,28 @@ export class UserService {
     }
   }
 
+  async getAccountIdByUsername(username: string) {
+    try {
+      const user = await client.user.findUnique({
+        where: {
+          username,
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('esse usuário não existe', 400, {
+          cause: new Error('esse usuário não existe'),
+        });
+      }
+
+      return user.accountId;
+    } catch (error) {
+      throw new HttpException(error.message, 400, {
+        cause: new Error(error.message),
+      });
+    }
+  }
+
   async loginUser({ password, username }: IUserDTO) {
     const existingUser = await client.user.findUnique({
       where: {

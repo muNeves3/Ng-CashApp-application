@@ -1,4 +1,4 @@
-import { Body, Controller, HttpException, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Post } from '@nestjs/common';
 import { UserService } from './user.service';
 import { IUserDTO } from '../../DTOs/IUserDTO';
 import { v4 as uuidv4 } from 'uuid';
@@ -37,6 +37,20 @@ export class UserController {
       });
     } catch (error) {
       return error;
+      throw new HttpException(error.message, 400, {
+        cause: new Error(error.message),
+      });
+    }
+  }
+
+  @Get('/accountIdByUsername')
+  async getAccountIdByUsername(@Body() input: { username: string }) {
+    try {
+      const accountId = await this.userService.getAccountIdByUsername(
+        input.username,
+      );
+      return accountId;
+    } catch (error) {
       throw new HttpException(error.message, 400, {
         cause: new Error(error.message),
       });
