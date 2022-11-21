@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { Transactions } from '@prisma/client';
 import { ITransactionDTO } from '../../DTOs/ITransactionDTO';
 import { ITransactionsFilterDTO } from '../../DTOs/ITransactionsFilterDTO';
@@ -46,7 +46,9 @@ export class TransactionsService {
 
       return { transaction, debitedAccount, creditedAccount };
     } catch (error) {
-      throw new Error(error);
+      throw new HttpException(error.message, 400, {
+        cause: new Error(error.message),
+      });
     }
   }
 
@@ -65,8 +67,9 @@ export class TransactionsService {
 
     const allTransactions = await client.transactions.findFirst();
     if (!allTransactions) {
-      throw new Error(
+      throw new HttpException(
         'Você não é capaz de visualizar suas transações financeiras',
+        400,
       );
     }
 

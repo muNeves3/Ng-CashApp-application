@@ -30,13 +30,15 @@ model Account {
 model Transactions {
   id               Int   @id @default(autoincrement())
   value            Float
-  debitedAccount   User  @relation(fields: [debitedAccountId], references: [id])
   debitedAccountId Int
 
-  creditedAccount   Account @relation(fields: [creditedAccountId], references: [id])
   creditedAccountId Int
 
   createdAt DateTime @default(now())
+  User      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+  Account   Account? @relation(fields: [accountId], references: [id])
+  accountId Int?
 }
 
 model RefreshToken {

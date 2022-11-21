@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { IUserDTO } from 'src/DTOs/IUserDTO';
 import { client } from '../prisma/client';
-import { User } from '@prisma/client';
 import { compare, hashSync } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from 'src/utils/jwtService';
 import { AuthService } from '../auth/auth.service';
 import { HashTokenService } from '../../utils/hashTokenService';
 import { verify } from 'jsonwebtoken';
+import { Prisma, User } from '@prisma/client';
 
 @Injectable()
 export class UserService {
@@ -20,38 +20,53 @@ export class UserService {
   }
 
   async createUser({ password, username }: IUserDTO): Promise<any | User> {
+    const messages = [];
+    console.log('Messages: ', messages);
+
     try {
       if (username.length < 3) {
-        throw new Error('O usuário deve ter no mínimo 3 caracteres');
+        messages.push('O usuário deve ter no mínimo 3 caracteres');
       }
       if (password.length < 8) {
-        throw new Error('A senha deve ter no mínimo 8 caracteres');
+        messages.push('A senha deve ter no mínimo 8 caracteres');
       } else if (!this.#checkForNumberInPassword(password)) {
-        throw new Error('A senha deve conter no mínimo 1 número');
+        messages.push('A senha deve conter no mínimo 1 número');
       } else if (!this.#checkforCapitalLetterInPassword(password)) {
-        throw new Error('A senha deve conter no mínimo 1 letra maiúscula');
+        messages.push('A senha deve conter no mínimo 1 letra maiúscula');
+        // throw new HttpException(
+        //   'A senha deve conter no mínimo 1 letra maiúscula',
+        //   400,
+        // );
       }
+
       const account = await client.account.create({
         data: {
           balance: 100,
         },
       });
 
-      try {
-        const hashedPassword = hashSync(password, 12);
-        const user = await client.user.create({
-          data: {
-            username,
-            password: hashedPassword,
-            accountId: account.id,
-          },
-        });
-        return user;
-      } catch (error) {
-        throw new Error(error);
+      if (messages.length > 0) {
+        console.log('Messages: ', messages[0]);
+        return { errorMessage: messages[0] };
       }
+
+      console.log(messages);
+      console.log('Messages: ', messages);
+
+      const hashedPassword = hashSync(password, 12);
+      const user = await client.user.create({
+        data: {
+          username,
+          password: hashedPassword,
+          accountId: account.id,
+        },
+      });
+
+      return user;
     } catch (error) {
-      throw new Error(error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new HttpException('Esse usuário já está em uso', +error.code);
+      }
     }
   }
 
@@ -63,13 +78,13 @@ export class UserService {
     });
 
     if (!existingUser) {
-      throw new Error('Usuário não encontrado');
+      throw new HttpException('Usuário não encontrado', 400);
     }
 
     const validPassword = await compare(password, existingUser.password);
 
     if (!validPassword) {
-      throw new Error('Senha incorreta');
+      throw new HttpException('Senha incorreta', 400);
     }
 
     const jti = uuidv4();
@@ -94,12 +109,12 @@ export class UserService {
     const hashTokenService = new HashTokenService();
 
     if (!refreshToken) {
-      throw new Error('Token inválido');
+      throw new HttpException('Token inválido', 400);
     }
     const payload = verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
     if (typeof payload === 'string') {
-      throw new Error('Token inválido');
+      throw new HttpException('Token inválido', 400);
     }
 
     const savedRefreshToken = await authService.findRefreshTokenById(
@@ -107,12 +122,12 @@ export class UserService {
     );
 
     if (!savedRefreshToken || savedRefreshToken.revoked === true) {
-      throw new Error('Não autorizado');
+      throw new HttpException('Não autorizado', 400);
     }
 
     const hashedToken = hashTokenService.hashToken(refreshToken);
     if (hashedToken !== savedRefreshToken.hashedToken) {
-      throw new Error('Não autorizado');
+      throw new HttpException('Não autorizado', 400);
     }
 
     const user = await client.user.findUnique({

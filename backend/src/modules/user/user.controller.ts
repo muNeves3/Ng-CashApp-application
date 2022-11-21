@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpException, Post } from '@nestjs/common';
 import { UserService } from './user.service';
 import { IUserDTO } from '../../DTOs/IUserDTO';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,24 +18,41 @@ export class UserController {
     const jti = uuidv4();
     try {
       const user = await this.userService.createUser(input);
-      const { accessToken, refreshToken } = this.jwtService.generateTokens(
-        user,
-        jti,
-      );
-      await this.authService.addRefreshTokenToWhitelist({
-        jti,
-        refreshToken,
-        userId: user.id,
+
+      if (user.id != null || user.id != undefined) {
+        const { accessToken, refreshToken } = this.jwtService.generateTokens(
+          user,
+          jti,
+        );
+        await this.authService.addRefreshTokenToWhitelist({
+          jti,
+          refreshToken,
+          userId: user.id,
+        });
+        return { user, accessToken, refreshToken };
+      }
+
+      throw new HttpException(user.errorMessage, 400, {
+        cause: new Error(user.errorMessage),
       });
-      return { user, accessToken, refreshToken };
     } catch (error) {
-      throw new Error(error);
+      return error;
+      throw new HttpException(error.message, 400, {
+        cause: new Error(error.message),
+      });
     }
   }
 
   @Post('/login')
   async loginUser(@Body() input: IUserDTO) {
-    return this.userService.loginUser(input);
+    try {
+      const user = await this.userService.loginUser(input);
+      return user;
+    } catch (error) {
+      throw new HttpException(error.message, 400, {
+        cause: new Error(error.message),
+      });
+    }
   }
 
   @Post('/refreshToken')
