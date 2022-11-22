@@ -20,21 +20,13 @@ function Signup() {
 
   async function createUser(username: string, password: string) {
     try {
-      const response = await axios.post("http://localhost:3001/user", {
+      await axios.post("http://localhost:3001/user", {
         username,
         password,
       });
 
-      if (response.data.message !== null) {
-        toast.error(response.data.message);
-      }
-      if (response.data.user !== null && response.data.user !== undefined) {
-        toast.success("User created!");
-        navigate("/login");
-      } else {
-        toast.error("User not created!");
-      }
-      console.log(response);
+      toast.success("User created!");
+      navigate("/login");
     } catch (error: any) {
       toast.error(error.response.data.message);
       console.log(error.response);
@@ -76,7 +68,7 @@ function Signup() {
           <p>Cadastrar</p>
         </SubmitLoginButton>
         <Link to="/Login">
-          <p>Já é cadastrado? Faça login aqui</p>
+          <p style={{ fontSize: "0.8rem" }}>Já é cadastrado? Faça login aqui</p>
         </Link>
       </LoginContainer>
     </Content>

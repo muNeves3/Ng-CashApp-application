@@ -35,7 +35,6 @@ function Login() {
   }
 
   useEffect(() => {
-    debugger;
     if (user.user != null) {
       navigate("/balance");
     }
@@ -69,7 +68,9 @@ function Login() {
           <p>Login</p>
         </SubmitLoginButton>
         <Link to="/">
-          <p>Não possui uma conta? Cadastre-se aqui</p>
+          <p style={{ fontSize: "0.8rem" }}>
+            Não possui uma conta? Cadastre-se aqui
+          </p>
         </Link>
       </LoginContainer>
     </Content>
