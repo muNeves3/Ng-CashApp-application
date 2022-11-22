@@ -20,23 +20,32 @@ export class UserService {
   }
 
   async createUser({ password, username }: IUserDTO): Promise<any | User> {
-    const messages = [];
-    console.log('Messages: ', messages);
-
     try {
+      const existingUser = await client.user.findUnique({
+        where: {
+          username,
+        },
+      });
+
+      if (existingUser) {
+        throw new HttpException('Usuário já existe', 400);
+      }
+
       if (username.length < 3) {
-        messages.push('O usuário deve ter no mínimo 3 caracteres');
+        throw new HttpException(
+          'O usuário deve ter no mínimo 3 caracteres',
+          400,
+        );
       }
       if (password.length < 8) {
-        messages.push('A senha deve ter no mínimo 8 caracteres');
+        throw new HttpException('A senha deve ter no mínimo 8 caracteres', 400);
       } else if (!this.#checkForNumberInPassword(password)) {
-        messages.push('A senha deve conter no mínimo 1 número');
+        throw new HttpException('A senha deve conter no mínimo 1 número', 400);
       } else if (!this.#checkforCapitalLetterInPassword(password)) {
-        messages.push('A senha deve conter no mínimo 1 letra maiúscula');
-        // throw new HttpException(
-        //   'A senha deve conter no mínimo 1 letra maiúscula',
-        //   400,
-        // );
+        throw new HttpException(
+          'A senha deve conter no mínimo 1 letra maiúscula',
+          400,
+        );
       }
 
       const account = await client.account.create({
@@ -44,14 +53,6 @@ export class UserService {
           balance: 100,
         },
       });
-
-      if (messages.length > 0) {
-        console.log('Messages: ', messages[0]);
-        return { errorMessage: messages[0] };
-      }
-
-      console.log(messages);
-      console.log('Messages: ', messages);
 
       const hashedPassword = hashSync(password, 12);
       const user = await client.user.create({
@@ -64,9 +65,9 @@ export class UserService {
 
       return user;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        throw new HttpException('Esse usuário já está em uso', +error.code);
-      }
+      throw new HttpException(error.message, 400, {
+        cause: new Error(error.message),
+      });
     }
   }
 

@@ -1,20 +1,27 @@
-import { Injectable } from '@nestjs/common';
-import { response } from 'express';
-import { ITransactionDTO } from 'src/DTOs/ITransactionDTO';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import { client } from '../prisma/client';
 
 @Injectable()
 export class AccountService {
-  //constructor() {}
+  constructor(@Inject(CACHE_MANAGER) private cachemanager: Cache) {}
 
   async getUserBalance(userId: number) {
-    const user = await client.user.findUnique({
-      where: { id: userId },
-      include: {
-        account: true,
-      },
-    });
+    const cacheKey = `balance${userId}`;
+    let cachedBalance = await this.cachemanager.get(cacheKey);
 
-    return user.account.balance;
+    if (!cachedBalance) {
+      const user = await client.user.findUnique({
+        where: { id: userId },
+        include: {
+          account: true,
+        },
+      });
+      cachedBalance = user.account.balance;
+
+      this.cachemanager.set(cacheKey, user.account.balance, 60 * 60 * 24);
+    }
+
+    return cachedBalance;
   }
 }

@@ -15,31 +15,22 @@ export class UserController {
 
   @Post()
   async createUser(@Body() input: IUserDTO) {
-    const jti = uuidv4();
     try {
+      const jti = uuidv4();
       const user = await this.userService.createUser(input);
 
-      if (user.id != null || user.id != undefined) {
-        const { accessToken, refreshToken } = this.jwtService.generateTokens(
-          user,
-          jti,
-        );
-        await this.authService.addRefreshTokenToWhitelist({
-          jti,
-          refreshToken,
-          userId: user.id,
-        });
-        return { user, accessToken, refreshToken };
-      }
-
-      throw new HttpException(user.errorMessage, 400, {
-        cause: new Error(user.errorMessage),
+      const { accessToken, refreshToken } = this.jwtService.generateTokens(
+        user,
+        jti,
+      );
+      await this.authService.addRefreshTokenToWhitelist({
+        jti,
+        refreshToken,
+        userId: user.id,
       });
+      return { user, accessToken, refreshToken };
     } catch (error) {
-      return error;
-      throw new HttpException(error.message, 400, {
-        cause: new Error(error.message),
-      });
+      throw new HttpException(error.message, 400);
     }
   }
 
