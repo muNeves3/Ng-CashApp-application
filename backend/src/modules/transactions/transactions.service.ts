@@ -1,5 +1,6 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { Transactions } from '@prisma/client';
+import { ICreateTransactionDTO } from 'src/DTOs/ICreateTransactionDTO';
 import { ITransactionDTO } from '../../DTOs/ITransactionDTO';
 import { ITransactionsFilterDTO } from '../../DTOs/ITransactionsFilterDTO';
 import { client } from '../prisma/client';
@@ -9,15 +10,41 @@ export class TransactionsService {
   //constructor() {}
 
   async createTransaction({
-    creditedAccountId,
+    creditedAccountUsername,
     debitedAccountId,
     value,
-  }: ITransactionDTO) {
+    userId,
+  }: ICreateTransactionDTO) {
     try {
+      const user = await client.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (user.username === creditedAccountUsername) {
+        throw new HttpException(
+          'Você não pode mandar dinheiro para você mesmo',
+          400,
+          {
+            cause: new Error('Você não pode mandar dinheiro para você mesmo'),
+          },
+        );
+      }
+      const creditedAccountIdByUsername = await client.user.findUnique({
+        where: {
+          username: creditedAccountUsername,
+        },
+      });
+
+      if (!creditedAccountIdByUsername) {
+        throw new HttpException('Conta de destino não existe', 400, {
+          cause: new Error('Conta de destino não existe'),
+        });
+      }
+
       const transaction = await client.transactions.create({
         data: {
           value,
-          creditedAccountId,
+          creditedAccountId: creditedAccountIdByUsername.accountId,
           debitedAccountId,
         },
       });
@@ -35,7 +62,7 @@ export class TransactionsService {
 
       const creditedAccount = await client.account.update({
         where: {
-          id: creditedAccountId,
+          id: creditedAccountIdByUsername.accountId,
         },
         data: {
           balance: {
@@ -55,15 +82,12 @@ export class TransactionsService {
   async getUserTransactions({
     cashIn,
     cashOut,
-    createdAt,
+    fromDate,
+    toDate,
     userId,
+    userAccountId,
   }: ITransactionsFilterDTO) {
-    const userAccountId = await client.user.findUnique({
-      where: { id: Number(userId) },
-      include: {
-        account: true,
-      },
-    });
+    console.log(cashIn, cashOut, fromDate, toDate, userId, userAccountId);
 
     const allTransactions = await client.transactions.findFirst();
     if (!allTransactions) {
@@ -74,36 +98,54 @@ export class TransactionsService {
     }
 
     if (cashIn) {
-      const transactions = await client.transactions.findMany({
-        where: {
-          creditedAccountId: userAccountId.account.id,
-        },
-      });
+      let string = `
+      SELECT "U1"."username" as "para", "U2"."username" as "de", "T"."id" as "TransactionId", * FROM "Transactions" "T"
+        INNER JOIN "User" "U1" ON "U1"."accountId" = "T"."creditedAccountId"
+        INNER JOIN "User" "U2" ON "U2"."accountId" = "T"."debitedAccountId"
+        WHERE "T"."creditedAccountId" = ${userAccountId}
+      `;
+
+      if (toDate && fromDate) {
+        string += ` AND TO_CHAR("createdAt"::date, 'dd/mm/yyyy') BETWEEN  TO_CHAR('${fromDate}'::date, 'dd/mm/yyyy') 
+          AND TO_CHAR('${toDate}'::date, 'dd/mm/yyyy')`;
+      } else if (fromDate && !toDate) {
+        string += ` AND TO_CHAR("createdAt"::date, 'dd/mm/yyyy') >= TO_CHAR('${fromDate}'::date, 'dd/mm/yyyy')`;
+      }
+      const transactions = await client.$queryRawUnsafe<Transactions>(string);
+
       return transactions;
     } else if (cashOut) {
-      const transactions = await client.transactions.findMany({
-        where: {
-          debitedAccountId: userAccountId.account.id,
-        },
-      });
-      return transactions;
-    } else if (createdAt) {
-      console.log(new Date(createdAt));
-      const string = `
-      SELECT
-        *, to_char("createdAt"::date, 'dd/mm/yyyy HH:mm') createdAtFormatted 
-      FROM
-        "Transactions"
-      WHERE
-      TO_CHAR("createdAt"::date, 'dd/mm/yyyy') = TO_CHAR('${createdAt}'::date, 'dd/mm/yyyy')
-        AND ("creditedAccountId" = ${userAccountId.account.id}
-        OR "debitedAccountId" = ${userAccountId.account.id})
+      let string = `
+      SELECT "U1"."username" as "para", "U2"."username" as "de", "T"."id" as "TransactionId", * FROM "Transactions" "T"
+      INNER JOIN "User" "U1" ON "U1"."accountId" = "T"."creditedAccountId"
+      INNER JOIN "User" "U2" ON "U2"."accountId" = "T"."debitedAccountId"
+      WHERE "T"."debitedAccountId" = ${userAccountId}
     `;
+
+      if (toDate && fromDate) {
+        string += ` AND TO_CHAR("createdAt"::date, 'dd/mm/yyyy') BETWEEN  TO_CHAR('${fromDate}'::date, 'dd/mm/yyyy') 
+        AND TO_CHAR('${toDate}'::date, 'dd/mm/yyyy')`;
+      } else if (fromDate && !toDate) {
+        string += ` AND TO_CHAR("createdAt"::date, 'dd/mm/yyyy') >= TO_CHAR('${fromDate}'::date, 'dd/mm/yyyy')`;
+      }
       console.log(string);
 
       const transactions = await client.$queryRawUnsafe<Transactions>(string);
 
       return transactions;
     }
+
+    //   console.log(new Date(createdAt));
+    //   const string = `
+    //   SELECT
+    //     *, to_char("createdAt"::date, 'dd/mm/yyyy HH:mm') createdAtFormatted
+    //   FROM
+    //     "Transactions"
+    //   WHERE
+    //   TO_CHAR("createdAt"::date, 'dd/mm/yyyy') = TO_CHAR('${createdAt}'::date, 'dd/mm/yyyy')
+    //     AND ("creditedAccountId" = ${userAccountId.account.id}
+    //     OR "debitedAccountId" = ${userAccountId.account.id})
+    // `;
+    //   console.log(string);
   }
 }

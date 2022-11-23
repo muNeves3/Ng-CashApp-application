@@ -7,20 +7,13 @@ export class AccountService {
   constructor(@Inject(CACHE_MANAGER) private cachemanager: Cache) {}
 
   async getUserBalance(userId: number) {
-    const cacheKey = `balance${userId}`;
-    let cachedBalance = await this.cachemanager.get(cacheKey);
-
-    if (!cachedBalance) {
-      const user = await client.user.findUnique({
-        where: { id: userId },
-        include: {
-          account: true,
-        },
-      });
-      cachedBalance = user.account.balance;
-
-      this.cachemanager.set(cacheKey, user.account.balance, 60 * 60 * 24);
-    }
+    const user = await client.user.findUnique({
+      where: { id: userId },
+      include: {
+        account: true,
+      },
+    });
+    const cachedBalance = user.account.balance;
 
     return cachedBalance;
   }

@@ -1,6 +1,8 @@
 export interface ITransactionsFilterDTO {
   cashIn: boolean;
   cashOut: boolean;
-  createdAt: Date;
+  fromDate: Date;
+  toDate: Date;
   userId: number;
+  userAccountId: number;
 }

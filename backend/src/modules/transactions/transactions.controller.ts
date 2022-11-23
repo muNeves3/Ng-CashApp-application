@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { ITransactionDTO } from 'src/DTOs/ITransactionDTO';
+import { Body, Controller, Get, Post, Param, Query } from '@nestjs/common';
+import { ICreateTransactionDTO } from 'src/DTOs/ICreateTransactionDTO';
 import { TransactionsService } from './transactions.service';
 
 @Controller('/transactions')
@@ -7,12 +7,12 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get()
-  async getTransactions(@Query() query) {
-    return this.transactionsService.getUserTransactions(query);
+  async getTransactions(@Query() body) {
+    return this.transactionsService.getUserTransactions(body);
   }
 
   @Post()
-  async createUser(@Body() input: ITransactionDTO) {
+  async createTransaction(@Body() input: ICreateTransactionDTO) {
     return this.transactionsService.createTransaction(input);
   }
 }
