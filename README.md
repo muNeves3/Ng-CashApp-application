@@ -23,6 +23,8 @@
   yarn
   yarn prisma migrate:dev
   yarn start:dev
+
+    application will be started on http://localhost:3001/
 ```
 
 ### Routes
@@ -42,4 +44,6 @@
   cd ngcashapp
   yarn
   yarn start
+
+  application will be started on http://localhost:3000/
 ```
