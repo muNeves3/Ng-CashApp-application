@@ -11,10 +11,10 @@ type TransactionProps = {
 function Transaction(props: TransactionProps) {
   return (
     <Container>
-      <p>de: {props.de}</p>
-      <p>para: {props.para}</p>
-      <p>valor: {props.valor}</p>
-      <p>data: {props.data}</p>
+      <p className="De">de: {props.de}</p>
+      <p className="Para">para: {props.para}</p>
+      <p className="Valor">valor: {props.valor}</p>
+      <p className="Data">data: {props.data}</p>
     </Container>
   );
 }

@@ -12,4 +12,10 @@ export const Container = styled.div`
   padding-right: 1rem;
   justify-content: center;
   align-items: center;
+  margin-top: 1rem;
+
+  p {
+    font-size: 0.87rem;
+    margin-right: 5px;
+  }
 `;

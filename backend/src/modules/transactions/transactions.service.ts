@@ -88,6 +88,7 @@ export class TransactionsService {
     userAccountId,
   }: ITransactionsFilterDTO) {
     console.log(cashIn, cashOut, fromDate, toDate, userId, userAccountId);
+    console.log(typeof cashIn, typeof cashIn);
 
     const allTransactions = await client.transactions.findFirst();
     if (!allTransactions) {
@@ -97,7 +98,7 @@ export class TransactionsService {
       );
     }
 
-    if (cashIn) {
+    if (cashIn == 'true' && cashOut == 'false') {
       let string = `
       SELECT "U1"."username" as "para", "U2"."username" as "de", "T"."id" as "TransactionId", * FROM "Transactions" "T"
         INNER JOIN "User" "U1" ON "U1"."accountId" = "T"."creditedAccountId"
@@ -111,10 +112,11 @@ export class TransactionsService {
       } else if (fromDate && !toDate) {
         string += ` AND TO_CHAR("createdAt"::date, 'dd/mm/yyyy') >= TO_CHAR('${fromDate}'::date, 'dd/mm/yyyy')`;
       }
+      console.log(string);
       const transactions = await client.$queryRawUnsafe<Transactions>(string);
 
       return transactions;
-    } else if (cashOut) {
+    } else if (cashIn == 'false' && cashOut == 'true') {
       let string = `
       SELECT "U1"."username" as "para", "U2"."username" as "de", "T"."id" as "TransactionId", * FROM "Transactions" "T"
       INNER JOIN "User" "U1" ON "U1"."accountId" = "T"."creditedAccountId"
@@ -129,7 +131,6 @@ export class TransactionsService {
         string += ` AND TO_CHAR("createdAt"::date, 'dd/mm/yyyy') >= TO_CHAR('${fromDate}'::date, 'dd/mm/yyyy')`;
       }
       console.log(string);
-
       const transactions = await client.$queryRawUnsafe<Transactions>(string);
 
       return transactions;

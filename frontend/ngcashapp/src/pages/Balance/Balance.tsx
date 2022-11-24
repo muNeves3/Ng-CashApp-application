@@ -4,12 +4,16 @@ import {
   BalanceContainer,
   Content,
   CreateTransactionContainer,
+  FilterButton,
   GetTransactionsContainer,
   LogoutButton,
   MakeATransactionButton,
   TransactionsFilter,
 } from "./styles";
-
+import TextField from "@material-ui/core/TextField";
+import Autocomplete from "@material-ui/lab/Autocomplete";
+import List from "@material-ui/core/List";
+import DatePicker from "react-date-picker";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useUser } from "../../context/userContext";
@@ -20,47 +24,62 @@ function Balance() {
   const [balance, setBalance] = useState(0);
   const [creditedAccountUsername, setCreditedAccountUsername] = useState("");
   const [transactionValue, setTransactionValue] = useState(0);
-  const [cashIn, setCashIn] = useState(true);
-  const [cashOut, setCashOut] = useState(false);
-  const [fromDate, setFromDate] = useState(
-    new Date().toLocaleDateString("en-US")
-  );
+  const [cashInOut, setCashInOut] = useState<string | any>("cash-in");
+  const [fromDate, setFromDate] = useState<Date | any>(new Date());
   const [userTransactions, setUserTransactions] = useState([]);
-  const [toDate, setToDate] = useState<any>();
+  const [toDate, setToDate] = useState<Date | any>();
   const { user, setUser } = useUser();
   const navigate = useNavigate();
 
   const getUserBalance = useCallback(async () => {
-    const response = await axios.get(
-      `http://localhost:3001/account/balance?userId=${user.user.id}`,
-      {
-        headers: {
-          authorization: user.accessToken,
-        },
-      }
-    );
+    if (user.user !== undefined) {
+      const response = await axios.get(
+        `http://localhost:3001/account/balance?userId=${user.user.id}`,
+        {
+          headers: {
+            authorization: user.accessToken,
+          },
+        }
+      );
 
-    setBalance(response.data);
+      setBalance(response.data);
+    }
   }, [user]);
 
   const getUserTransactions = useCallback(async () => {
-    const response = await axios.get("http://localhost:3001/transactions", {
-      params: {
-        userId: user.user.id,
-        userAccountId: user.user.accountId,
-        cashOut: cashOut,
-        cashIn: cashIn,
-        // fromDate: fromDate,
-        // toDate: toDate,
-      },
-      headers: {
-        authorization: user.accessToken,
-      },
-    });
-    setUserTransactions(response.data);
+    if (fromDate === undefined || fromDate === undefined) {
+      toast.error("O filtro deve ter uma data de início");
+      return;
+    }
 
-    console.log(response);
-  }, []);
+    try {
+      const response = await axios.get("http://localhost:3001/transactions", {
+        params: {
+          userId: user.user.id,
+          userAccountId: user.user.accountId,
+          cashIn: cashInOut === "cash-in" ? true : false,
+          cashOut: cashInOut === "cash-out" ? true : false,
+          fromDate: fromDate,
+          toDate: toDate,
+        },
+        headers: {
+          authorization: user.accessToken,
+        },
+      });
+      console.log(response);
+      setUserTransactions(response.data);
+      toast.success("Filtrado com sucesso!");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  }, [
+    cashInOut,
+    fromDate,
+    toDate,
+    user.accessToken,
+    user.user.accountId,
+    user.user.id,
+  ]);
 
   const createTransaction = useCallback(async () => {
     try {
@@ -80,6 +99,7 @@ function Balance() {
       );
 
       toast.success("Transação realizada com sucesso!");
+      getUserTransactions();
       return response;
     } catch (error: any) {
       console.log(error.response.data.message);
@@ -95,16 +115,19 @@ function Balance() {
   }, []);
 
   useEffect(() => {
-    if (user == null || user.user == null) {
+    if (user == null || user.user === undefined) {
       navigate("/login");
     }
-    if (user.user != null) {
+    if (user.user != null || user.user === undefined) {
       getUserBalance();
     }
-  }, [user, getUserBalance, balance]);
+  }, [user]);
 
   useEffect(() => {
-    getUserTransactions();
+    window.onerror = function (msg, url, lineNo, columnNo, error) {
+      console.log("ERRO: " + msg);
+      navigate("/login");
+    };
   }, []);
 
   return (
@@ -155,63 +178,59 @@ function Balance() {
 
       <GetTransactionsContainer>
         <TransactionsFilter>
-          <label htmlFor="cashIn">Cash-in</label>
-          <input
-            type="checkbox"
-            id="cashIn"
-            checked={!!cashIn}
-            onChange={(e) => {
+          <Autocomplete
+            options={["cash-in", "cash-out"]}
+            style={{ width: 180, marginRight: 25, fontSize: 12 }}
+            onChange={(event, newValue) => {
               debugger;
-              if (cashOut === true) {
-                setCashOut(false);
+              if (newValue !== null) {
+                setCashInOut(newValue);
               }
-              setCashIn(!!e.target.checked);
             }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Cash-In/Cash-Out"
+                variant="outlined"
+              />
+            )}
           />
 
-          <label htmlFor="cashOut">Cash-out</label>
-          <input
-            type="checkbox"
-            id="cashOut"
-            checked={!!cashOut}
-            onChange={(e) => {
-              if (cashIn === true) {
-                setCashIn(false);
-              }
-              setCashOut(!!e.target.checked);
+          <DatePicker
+            onChange={(e: any) => {
+              debugger;
+              setFromDate(e);
             }}
+            value={fromDate}
+          />
+          <DatePicker
+            onChange={(e: any) => {
+              debugger;
+              setToDate(e);
+            }}
+            value={toDate}
           />
 
-          <input
-            type="date"
-            id="fromDate"
-            name="begin"
-            min="1990-01-01"
-            max="2090-12-31"
-            onChange={(e) => setFromDate(e.target.value)}
-          />
-
-          <input
-            type="date"
-            id="fromDate"
-            name="begin"
-            min="1990-01-01"
-            max="2090-12-31"
-            onChange={(e) => setToDate(e.target.value)}
-          />
+          <FilterButton onClick={() => getUserTransactions()}>
+            Filtrar
+          </FilterButton>
         </TransactionsFilter>
 
-        {userTransactions.map((transaction: any) => {
-          return (
-            <Transaction
-              data={new Date(transaction.createdAt).toLocaleDateString("pt-BR")}
-              de={transaction.de}
-              para={transaction.para}
-              valor={transaction.value}
-              key={transaction.id}
-            />
-          );
-        })}
+        <List style={{ maxHeight: "40%", overflow: "auto", marginTop: 15 }}>
+          {userTransactions.map((transaction: any) => {
+            return (
+              <Transaction
+                data={new Date(transaction.createdAt).toLocaleDateString(
+                  "pt-BR"
+                )}
+                de={transaction.de}
+                para={transaction.para}
+                valor={transaction.value}
+                key={transaction.TransactionId}
+              />
+            );
+          })}
+        </List>
       </GetTransactionsContainer>
     </Content>
   );

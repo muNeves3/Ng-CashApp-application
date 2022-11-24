@@ -3,16 +3,17 @@ import styled from "styled-components";
 export const Content = styled.div`
   height: 100vh;
   width: 100vw;
-  background: #212022;
+  background: #515052;
   display: flex;
   flex-direction: row;
   justify-content: center;
   align-items: center;
+  padding: 10px;
 `;
 
 export const BalanceContainer = styled.div`
   height: 100vh;
-  width: 50rem;
+  width: 25rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -30,7 +31,7 @@ export const BalanceContainer = styled.div`
 
 export const CreateTransactionContainer = styled.div`
   height: 100vh;
-  width: 50rem;
+  width: 25rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -69,14 +70,12 @@ export const GetTransactionsContainer = styled.div`
 `;
 
 export const TransactionsFilter = styled.div`
-  width: 90%;
+  width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  gap: 0.1rem;
   margin-bottom: 1rem;
-  label {
-    color: #fff;
-  }
 `;
 
 export const MakeATransactionButton = styled.button`
@@ -102,4 +101,14 @@ export const LogoutButton = styled.button`
   justify-content: center;
   border-radius: 9px;
   font-size: 0.7rem;
+`;
+
+export const FilterButton = styled.button`
+  width: 80px;
+  height: 70;
+  background-color: #000;
+  border-radius: 8px;
+  margin-left: 0.3rem;
+  color: #fff;
+  margin-right: 10px;
 `;
